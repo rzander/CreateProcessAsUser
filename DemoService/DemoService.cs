@@ -12,7 +12,9 @@ namespace demo
 
         protected override void OnStart(string[] args)
         {
-            ProcessExtensions.StartProcessAsCurrentUser("calc.exe");
+            ProcessExtensions oProc = new ProcessExtensions();
+            oProc.StartProcessAsCurrentUser("notepad.exe");
+            //ProcessExtensions.StartProcessAsCurrentUser("calc.exe");
         }
 
         protected override void OnStop()

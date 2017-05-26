@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Management.Automation;
 
 namespace murrayju.ProcessExtensions
 {
-    public static class ProcessExtensions
+    [Cmdlet("Start", "ProcessExtensions")]
+    public class ProcessExtensions : PSCmdlet
     {
         #region Win32 Constants
 
@@ -66,6 +68,8 @@ namespace murrayju.ProcessExtensions
             ref IntPtr ppSessionInfo,
             ref int pCount);
 
+        [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+        private static extern bool OpenProcessToken(IntPtr h, int acc, ref IntPtr phtok);
         #endregion
 
         #region Win32 Structs
@@ -207,7 +211,27 @@ namespace murrayju.ProcessExtensions
             return bResult;
         }
 
-        public static bool StartProcessAsCurrentUser(string appPath, string cmdLine = null, string workDir = null, bool visible = true)
+        [Parameter(Mandatory = true, HelpMessage = "Executable Path", Position = 0)]
+        [ValidateNotNullOrEmpty]
+        public string exePath { get; set; }
+
+        [Parameter(Mandatory = false, HelpMessage = "Arguments", Position = 1)]
+        public string args { get; set; } = null;
+
+        [Parameter(Mandatory = false, HelpMessage = "Working directory", Position = 2)]
+        public string workDir { get; set; } = null;
+
+        [Parameter(Mandatory = false, HelpMessage = "visible", Position = 3)]
+        public bool visible { get; set; } = true;
+
+        protected override void BeginProcessing()
+        {
+            StartProcessAsCurrentUser(Environment.ExpandEnvironmentVariables(exePath), args, workDir, visible);
+        }
+
+        public const int TOKEN_DUPLICATE = 0x0002;
+        public const int TOKEN_IMPERSONATE = 0x0004;
+        public bool StartProcessAsCurrentUser(string appPath, string cmdLine = null, string workDir = null, bool visible = true)
         {
             var hUserToken = IntPtr.Zero;
             var startInfo = new STARTUPINFO();
@@ -221,7 +245,19 @@ namespace murrayju.ProcessExtensions
             {
                 if (!GetSessionUserToken(ref hUserToken))
                 {
-                    throw new Exception("StartProcessAsCurrentUser: GetSessionUserToken failed.");
+                    System.Diagnostics.Process oProcess = System.Diagnostics.Process.GetProcessesByName("lsass")[0];
+                    IntPtr hlsasstoken = IntPtr.Zero;
+
+                    try
+                    {
+                        if(!OpenProcessToken(oProcess.Handle, TOKEN_IMPERSONATE | TOKEN_DUPLICATE, ref hlsasstoken))
+                        {
+                            throw new Exception("StartProcessAsCurrentUser: GetSessionUserToken failed.");
+                        }
+                    }
+                    catch { }
+
+                    
                 }
 
                 uint dwCreationFlags = CREATE_UNICODE_ENVIRONMENT | (uint)(visible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
