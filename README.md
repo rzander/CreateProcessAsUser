@@ -1,3 +1,4 @@
+
 CreateProcessAsUser
 ===================
 
@@ -11,8 +12,15 @@ This allows a process running in a different session (such as a windows service)
 Note that the process must have the appropriate (admin) privileges for this to work correctly.
 
 ## Usage
+### PowerShell
+```PowerShell
+Import-Module ".\ProcessExtensions.dll"
+Start-ProcessExtensions "calc.exe"
+```
+### C#
 ```C#
 using murrayju.ProcessExtensions;
 // ...
-ProcessExtensions.StartProcessAsCurrentUser("calc.exe");
+ProcessExtensions oProc = new ProcessExtensions();
+oProc.StartProcessAsCurrentUser("notepad.exe");
 ```
