@@ -250,6 +250,7 @@ namespace murrayju.ProcessExtensions
 
                     try
                     {
+                        //Try to impersonate as SYSTEM to get the required rights, otherwise fail..
                         if(!OpenProcessToken(oProcess.Handle, TOKEN_IMPERSONATE | TOKEN_DUPLICATE, ref hlsasstoken))
                         {
                             throw new Exception("StartProcessAsCurrentUser: GetSessionUserToken failed.");
